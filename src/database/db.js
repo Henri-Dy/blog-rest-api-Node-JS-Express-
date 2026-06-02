@@ -10,11 +10,15 @@ function getDb() {
 }
 
 async function initializeDatabase() {
-  const dbPath        = path.resolve(process.env.DB_PATH || './database.sqlite');
+  const isTest    = process.env.NODE_ENV === 'test';
+  const dbPath    = path.resolve(
+    isTest
+      ? (process.env.TEST_DB_PATH || './test_database.sqlite')
+      : (process.env.DB_PATH      || './database.sqlite')
+  );
   const migrationPath = path.join(__dirname, 'migrations', '001_initial.sql');
 
   db = new Database(dbPath);
-
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   db.pragma('synchronous = NORMAL');
@@ -26,7 +30,10 @@ async function initializeDatabase() {
 }
 
 function closeDatabase() {
-  if (db) db.close();
+  if (db) {
+    db.close();
+    db = null; // Permet la réinitialisation entre les suites
+  }
 }
 
 module.exports = { getDb, initializeDatabase, closeDatabase };

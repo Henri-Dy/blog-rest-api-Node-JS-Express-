@@ -1,14 +1,13 @@
 const request = require('supertest');
 const app     = require('../src/app');
-const { initializeDatabase, closeDatabase } = require('../src/database/db');
-
-beforeAll(async () => { await initializeDatabase(); });
-afterAll(() => closeDatabase());
+const { setupTestDb, closeDatabase } = require('./helpers/db');
 
 let adminToken, authorToken, readerToken;
 let categoryId, categorySlug;
 
 beforeAll(async () => {
+  await setupTestDb();
+
   const ts = Date.now();
 
   await request(app).post('/api/v1/auth/register').send({
@@ -33,7 +32,8 @@ beforeAll(async () => {
   readerToken = lc.body.data.accessToken;
 });
 
-// ── POST /categories ──────────────────────────────────────────
+afterAll(() => closeDatabase());
+
 describe('POST /api/v1/categories', () => {
   it('admin can create a category', async () => {
     const res = await request(app)
@@ -71,7 +71,6 @@ describe('POST /api/v1/categories', () => {
   });
 });
 
-// ── GET /categories ───────────────────────────────────────────
 describe('GET /api/v1/categories', () => {
   it('returns all categories publicly', async () => {
     const res = await request(app).get('/api/v1/categories');
@@ -80,7 +79,6 @@ describe('GET /api/v1/categories', () => {
   });
 });
 
-// ── GET /categories/:slug ─────────────────────────────────────
 describe('GET /api/v1/categories/:slug', () => {
   it('returns category with articles', async () => {
     const res = await request(app).get(`/api/v1/categories/${categorySlug}`);
@@ -95,7 +93,6 @@ describe('GET /api/v1/categories/:slug', () => {
   });
 });
 
-// ── PUT /categories/:id ───────────────────────────────────────
 describe('PUT /api/v1/categories/:id', () => {
   it('admin can update a category', async () => {
     const res = await request(app)
@@ -115,7 +112,6 @@ describe('PUT /api/v1/categories/:id', () => {
   });
 });
 
-// ── DELETE /categories/:id ────────────────────────────────────
 describe('DELETE /api/v1/categories/:id', () => {
   it('admin can delete a category', async () => {
     const res = await request(app)

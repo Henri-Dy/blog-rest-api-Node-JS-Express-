@@ -1,3 +1,7 @@
+const { setupTestDb, closeDatabase } = require('./helpers/db');
+
+beforeAll(async () => { await setupTestDb(); });
+// ... reste inchangé
 const request = require('supertest');
 const app     = require('../src/app');
 const { initializeDatabase, closeDatabase, getDb } = require('../src/database/db');
