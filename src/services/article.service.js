@@ -1,14 +1,14 @@
-const { v4: uuidv4 }  = require('uuid');
-const slugify          = require('slugify');
-const path             = require('path');
-const fs               = require('fs');
-const articleRepo      = require('../repositories/article.repository');
-const ApiError         = require('../utils/ApiError');
+const { v4: uuidv4 } = require('uuid');
+const slugify        = require('slugify');
+const path           = require('path');
+const fs             = require('fs');
+const articleRepo    = require('../repositories/article.repository');
+const ApiError       = require('../utils/ApiError');
 const { paginate, paginationMeta } = require('../utils/pagination');
 
 class ArticleService {
 
-  // ── Créer ────────────────────────────────────────────────────
+  // ── Créer ─────────────────────────────────────────────────────
   async create(userId, body) {
     const slug    = await this._uniqueSlug(body.title);
     const article = articleRepo.create({
@@ -31,7 +31,7 @@ class ArticleService {
     return this._withRelations(article.id);
   }
 
-  // ── Liste publique ───────────────────────────────────────────
+  // ── Liste publique ────────────────────────────────────────────
   async getAll(query) {
     const { page, limit, offset } = paginate(query);
     const filters = {
@@ -52,14 +52,14 @@ class ArticleService {
     };
   }
 
-  // ── Mes articles ─────────────────────────────────────────────
+  // ── Mes articles ──────────────────────────────────────────────
   async getMine(userId, query) {
     const { page, limit, offset } = paginate(query);
     const filters = {
       userId,
-      status:    query.status   || null,
-      search:    query.search   || null,
-      sortBy:    query.sortBy   || 'created_at',
+      status:    query.status    || null,
+      search:    query.search    || null,
+      sortBy:    query.sortBy    || 'created_at',
       sortOrder: query.sortOrder || 'desc',
     };
 
@@ -72,12 +72,11 @@ class ArticleService {
     };
   }
 
-  // ── Détail par slug ──────────────────────────────────────────
+  // ── Détail par slug ───────────────────────────────────────────
   async getBySlug(slug, user = null) {
     const article = articleRepo.findBySlug(slug);
     if (!article) throw ApiError.notFound('Article not found');
 
-    // Article non publié : seul le propriétaire ou admin peut voir
     if (article.status !== 'published') {
       if (!user) throw ApiError.notFound('Article not found');
       if (article.user_id !== user.id && user.role !== 'admin') {
@@ -88,7 +87,7 @@ class ArticleService {
     return this._withRelations(article.id);
   }
 
-  // ── Modifier ─────────────────────────────────────────────────
+  // ── Modifier ──────────────────────────────────────────────────
   async update(articleId, requesterId, requesterRole, body) {
     const article = articleRepo.findById(articleId);
     if (!article) throw ApiError.notFound('Article not found');
@@ -109,7 +108,7 @@ class ArticleService {
     return this._withRelations(articleId);
   }
 
-  // ── Supprimer ────────────────────────────────────────────────
+  // ── Supprimer ─────────────────────────────────────────────────
   async delete(articleId, requesterId, requesterRole) {
     const article = articleRepo.findById(articleId);
     if (!article) throw ApiError.notFound('Article not found');
@@ -120,13 +119,15 @@ class ArticleService {
     return true;
   }
 
-  // ── Publier ──────────────────────────────────────────────────
+  // ── Publier ───────────────────────────────────────────────────
   async publish(articleId, requesterId, requesterRole) {
     const article = articleRepo.findById(articleId);
     if (!article) throw ApiError.notFound('Article not found');
     this._checkOwnerOrAdmin(article, requesterId, requesterRole);
 
-    if (article.status === 'published') throw ApiError.badRequest('Article is already published');
+    if (article.status === 'published') {
+      throw ApiError.badRequest('Article is already published');
+    }
 
     articleRepo.update(articleId, {
       status:       'published',
@@ -136,7 +137,7 @@ class ArticleService {
     return this._withRelations(articleId);
   }
 
-  // ── Archiver ─────────────────────────────────────────────────
+  // ── Archiver ──────────────────────────────────────────────────
   async archive(articleId, requesterId, requesterRole) {
     const article = articleRepo.findById(articleId);
     if (!article) throw ApiError.notFound('Article not found');
@@ -146,7 +147,7 @@ class ArticleService {
     return this._withRelations(articleId);
   }
 
-  // ── Upload cover ─────────────────────────────────────────────
+  // ── Upload cover ──────────────────────────────────────────────
   async updateCover(articleId, requesterId, requesterRole, file) {
     if (!file) throw ApiError.badRequest('No file uploaded');
 
@@ -162,7 +163,7 @@ class ArticleService {
     return this._withRelations(articleId);
   }
 
-  // ── Helpers privés ───────────────────────────────────────────
+  // ── Helpers privés ────────────────────────────────────────────
   async _uniqueSlug(title, excludeId = null) {
     const base     = slugify(title, { lower: true, strict: true });
     const existing = articleRepo.findBySlugLike(base);
@@ -188,4 +189,16 @@ class ArticleService {
 
   _checkOwnerOrAdmin(article, requesterId, requesterRole) {
     if (article.user_id !== requesterId && requesterRole !== 'admin') {
-      throw ApiError.forbidden('You are not
+      throw ApiError.forbidden('You are not allowed to perform this action');
+    }
+  }
+
+  _deleteFile(relativePath) {
+    try {
+      const full = path.join(process.cwd(), relativePath);
+      if (fs.existsSync(full)) fs.unlinkSync(full);
+    } catch { /* non bloquant */ }
+  }
+}
+
+module.exports = new ArticleService();
