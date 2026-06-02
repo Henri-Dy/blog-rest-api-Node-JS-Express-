@@ -7,8 +7,14 @@ class ApiResponse {
     return this.success(res, data, message, 201);
   }
 
-  static paginated(res, data, pagination, message = 'Success') {
-    return res.status(200).json({ success: true, message, data, pagination });
+  static paginated(res, data, pagination, message = 'Success', meta = {}) {
+    return res.status(200).json({
+      success: true,
+      message,
+      data,
+      pagination,
+      ...meta,
+    });
   }
 
   static noContent(res) {
