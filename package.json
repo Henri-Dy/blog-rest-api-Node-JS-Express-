@@ -46,5 +46,6 @@
     "testMatch": [
       "**/tests/**/*.test.js"
     ]
-  }
+  },
+  "test": "NODE_ENV=test jest --runInBand --forceExit"
 }

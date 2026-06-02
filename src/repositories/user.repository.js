@@ -2,6 +2,33 @@ const { getDb } = require('../database/db');
 
 class UserRepository {
 
+  findAll({ limit, offset, role } = {}) {
+    let query  = 'SELECT id, name, email, role, bio, avatar, is_active, created_at, updated_at FROM users';
+    const params = [];
+
+    if (role) {
+      query += ' WHERE role = ?';
+      params.push(role);
+    }
+
+    query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+    params.push(limit ?? 10, offset ?? 0);
+
+    return getDb().prepare(query).all(...params);
+  }
+
+  countAll({ role } = {}) {
+    let query  = 'SELECT COUNT(*) as total FROM users';
+    const params = [];
+
+    if (role) {
+      query += ' WHERE role = ?';
+      params.push(role);
+    }
+
+    return getDb().prepare(query).get(...params).total;
+  }
+
   findById(id) {
     return getDb()
       .prepare('SELECT * FROM users WHERE id = ?')
@@ -24,7 +51,7 @@ class UserRepository {
   }
 
   update(id, fields) {
-    const allowed = ['name', 'email', 'password', 'bio', 'avatar', 'is_active'];
+    const allowed = ['name', 'email', 'password', 'bio', 'avatar', 'is_active', 'role'];
     const keys    = Object.keys(fields).filter(k => allowed.includes(k));
     if (!keys.length) return this.findById(id);
 
@@ -36,7 +63,13 @@ class UserRepository {
     return this.findById(id);
   }
 
-  // Refresh tokens
+  delete(id) {
+    return getDb()
+      .prepare('DELETE FROM users WHERE id = ?')
+      .run(id);
+  }
+
+  // ── Refresh tokens ───────────────────────────────────────────
   saveRefreshToken({ id, userId, token, expiresAt }) {
     getDb().prepare(`
       INSERT INTO refresh_tokens (id, user_id, token, expires_at)

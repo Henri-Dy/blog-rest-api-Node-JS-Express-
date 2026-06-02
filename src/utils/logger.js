@@ -1,8 +1,10 @@
+const isTest = process.env.NODE_ENV === 'test';
+
 const logger = {
-  info:  (...args) => console.log('[INFO] ', ...args),
-  warn:  (...args) => console.warn('[WARN] ', ...args),
+  info:  (...args) => !isTest && console.log('[INFO] ',  ...args),
+  warn:  (...args) => !isTest && console.warn('[WARN] ',  ...args),
   error: (...args) => console.error('[ERROR]', ...args),
-  debug: (...args) => console.debug('[DEBUG]', ...args),
+  debug: (...args) => !isTest && console.debug('[DEBUG]', ...args),
 };
 
 module.exports = logger;
