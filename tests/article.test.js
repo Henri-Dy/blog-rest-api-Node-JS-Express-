@@ -1,12 +1,8 @@
+const request = require('supertest');
+const app     = require('../src/app');
 const { setupTestDb, closeDatabase } = require('./helpers/db');
 
 beforeAll(async () => { await setupTestDb(); });
-afterAll(() => closeDatabase());
-const request = require('supertest');
-const app     = require('../src/app');
-const { initializeDatabase, closeDatabase } = require('../src/database/db');
-
-beforeAll(async () => { await initializeDatabase(); });
 afterAll(() => closeDatabase());
 
 let authorToken, adminToken, readerToken;

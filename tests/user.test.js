@@ -1,28 +1,15 @@
-const { setupTestDb, closeDatabase } = require('./helpers/db');
-
-beforeAll(async () => { await setupTestDb(); });
-// ... reste inchangé
 const request = require('supertest');
 const app     = require('../src/app');
-const { initializeDatabase, closeDatabase, getDb } = require('../src/database/db');
-
-beforeAll(async () => { await initializeDatabase(); });
-afterAll(() => closeDatabase());
-
-// ── Helpers ──────────────────────────────────────────────────
-const adminCredentials  = { email: 'admin@blog.com',  password: 'Admin1234' };
-const authorCredentials = { email: 'author@blog.com', password: 'Author1234' };
-const readerCredentials = { email: 'reader@blog.com', password: 'Reader1234' };
+const { setupTestDb, closeDatabase } = require('./helpers/db');
 
 let adminToken, authorToken, readerToken;
 let adminId, authorId, readerId;
 
 async function registerAndLogin(data, role = 'reader') {
-  const reg = await request(app)
+  await request(app)
     .post('/api/v1/auth/register')
     .send({ ...data, name: role, role });
 
-  // Si déjà existant on tente juste le login
   const login = await request(app)
     .post('/api/v1/auth/login')
     .send({ email: data.email, password: data.password });
@@ -34,16 +21,26 @@ async function registerAndLogin(data, role = 'reader') {
 }
 
 beforeAll(async () => {
-  await initializeDatabase();
+  await setupTestDb();
 
-  const admin  = await registerAndLogin(adminCredentials,  'admin');
-  const author = await registerAndLogin(authorCredentials, 'author');
-  const reader = await registerAndLogin(readerCredentials, 'reader');
+  const ts = Date.now();
+
+  const admin  = await registerAndLogin(
+    { email: `adm_${ts}@test.com`,  password: 'Admin1234'  }, 'admin'
+  );
+  const author = await registerAndLogin(
+    { email: `aut_${ts}@test.com`,  password: 'Author1234' }, 'author'
+  );
+  const reader = await registerAndLogin(
+    { email: `rdr_${ts}@test.com`,  password: 'Reader1234' }, 'reader'
+  );
 
   adminToken  = admin.token;  adminId  = admin.id;
   authorToken = author.token; authorId = author.id;
   readerToken = reader.token; readerId = reader.id;
 });
+
+afterAll(() => closeDatabase());
 
 // ── GET /users ────────────────────────────────────────────────
 describe('GET /api/v1/users', () => {
@@ -127,9 +124,9 @@ describe('PUT /api/v1/users/:id', () => {
 // ── DELETE /users/:id ─────────────────────────────────────────
 describe('DELETE /api/v1/users/:id', () => {
   it('user can delete own account', async () => {
-    // Créer un compte temporaire
+    const ts  = Date.now();
     const tmp = await registerAndLogin(
-      { email: `tmp_${Date.now()}@test.com`, password: 'Tmp12345' },
+      { email: `tmp_${ts}@test.com`, password: 'Tmp12345' },
       'reader'
     );
     const res = await request(app)
